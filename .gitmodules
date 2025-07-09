@@ -1,0 +1,6 @@
+[submodule "data/FollowBench"]
+	path = data/FollowBench
+	url = https://github.com/viswavi/FollowBench.git
+[submodule "openrlhf_training_scripts/OpenRLHF"]
+	path = openrlhf_training_scripts/OpenRLHF
+	url = https://github.com/viswavi/OpenRLHF.git
