@@ -1,0 +1,7 @@
+openrlhf==0.8.10
+transformers==4.55.2
+torch==2.6.0
+vllm==0.8.3
+scikit-learn==1.6.1
+numpy==1.26.4
+

@@ -1,5 +1,4 @@
-# Checklist Finetuning
-
+# RLCF
 
 ## Generating Checklists
 In the "candidate-based checklist" method, first need to generate responses by smaller LMs. You will need access to a single GPU with at least 40GB of memory for this:
@@ -123,8 +122,8 @@ Then, run ./launch_ifeval_evaluation.sh <trained_model_name> <openai or litellm 
 # Dependencies
 Install openrlhf from source:
 ```
-cd openrlhf_training_scripts/OpenRLHF
-pip install -e .
+conda create -n openrlhf python=3.10
+pip install -r requirements.txt
 ```
 
 # Cite
