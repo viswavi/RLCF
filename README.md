@@ -1,4 +1,20 @@
-# RLCF
+# RLCF: RL from Checklist Feedback
+
+This is a software package to support automatically generating checklists/rubrics for instructions and using these checklists for grading responses for use in DPO. This code can easily be repurposed for use in online RL pipelines (e.g. GRPO).
+
+We provide code for 5 main steps:
+
+1. [Generating Checklists](https://github.com/viswavi/RLCF/blob/main/README.md#generating-checklists)
+2. [Scoring Responses via Rubric-Grounded LM Judges](https://github.com/viswavi/RLCF/blob/main/README.md#scoring-responses-via-rubric-grounded-LM-judges)
+3. [Scoring Responses via Rubric-Grounded Code Verifiers](https://github.com/viswavi/RLCF/blob/main/README.md#scoring-responses-via-rubric-grounded-code-verifiers)
+4. [Train Model](https://github.com/viswavi/RLCF/blob/main/README.md#train-model)
+5. [Evaluate on Benchmarks](benchmark-evaluation)
+
+
+For your convenience, we've stored pre-computed results from each of these steps for [the particular setup described in our paper](https://arxiv.org/abs/2507.18624) (where we generated [checklists for WildChat](https://huggingface.co/datasets/viswavi/wildchecklists), generated [response pairs for each WildChat instruction]((https://drive.google.com/file/d/1TutNY6uBC-MByAcaLzwwX_ypXhXVsCud/view?usp=sharing)) using Qwen2.5-7B-Instruct, produced [scores for them](https://drive.google.com/file/d/1ixgWc72FSYoUq1RQ3_2uTGzNO7tPNxw-/view?usp=drive_link) using Qwen2.5-70B-Instruct as a judge, and generated [verification code](https://drive.google.com/file/d/1F_dc5pexfPbMuW4kuM2b119tA3Nt1XrO/view?usp=sharing) when applicable using Qwen2.5-70B-Instruct). The final result of this is a dataset suitable for offline RL: [viswavi/wildchecklists](https://huggingface.co/datasets/viswavi/wildchecklists).
+
+We encourage you to generate similar data on policy for models you wish to train, and we present the code below to help you do that.
+
 
 ## Generating Checklists
 In the "candidate-based checklist" method, first need to generate responses by smaller LMs. You will need access to a single GPU with at least 40GB of memory for this:
@@ -33,16 +49,15 @@ do
 done
 ```
 
-Now, you will have a directory, in `combined_wildchat_requirements`, which contains requirements for all the promps in wildchat! You can instead skip this step and fetch pre-generated files from https://drive.google.com/file/d/1hkZUDEc_QiywfwH-tQSvrlDjV_zTOlfx/view?usp=sharing.
+Now, you will have a directory, in `combined_wildchat_requirements`, which contains requirements for all the promps in wildchat! You can instead skip this step and fetch pre-generated files from https://drive.google.com/file/d/1hkZUDEc_QiywfwH-tQSvrlDjV_zTOlfx/view?usp=sharing or https://huggingface.co/datasets/viswavi/wildchecklists.
 
-### Generate Response Pairs
+#### Generate Response Pairs
 ```
 python -u run_req_eval.py --benchmark WildChat --method direct --llm Qwen/Qwen2.5-7B-Instruct --top-p 0.95 -num-samples 2 --temperature 1.3 --num-batches 50
 ```
 These will be written to a directory called `wildchat_responses`. You can instead skip this step and fetch a version of `wildchat_responses` with pre-generated files from https://drive.google.com/file/d/1TutNY6uBC-MByAcaLzwwX_ypXhXVsCud/view?usp=sharing.
 
-
-## Generate Preference Dataset
+## Scoring Responses via Rubric-Grounded LM Judges
 
 (tested on nodes with 4 or 8 H100s, withe computation done in batches)
 ```
@@ -62,8 +77,10 @@ python construct_offline_preference_data.py \
 And then combine the generated files:
 python combine_jsons.py combined_wildchat_scores.json
 
+You can instead skip this step and fetch pre-generated files from https://drive.google.com/file/d/1ixgWc72FSYoUq1RQ3_2uTGzNO7tPNxw-/view?usp=drive_link.
 
-## Generate verification code
+## Scoring Responses via Rubric-Grounded Code Verifiers
+#### Generate verification code
 ```
 cd data/requirement_generation
 python write_code_batch.py \
@@ -75,7 +92,7 @@ python write_code_batch.py \
 
 This step has been tested on nodes with 4 80GB H100 GPUs or 8 40GB A100 GPUs, and takes several hours. You can instead skip this step and fetch pre-generated files from https://drive.google.com/file/d/1F_dc5pexfPbMuW4kuM2b119tA3Nt1XrO/view?usp=sharing.
 
-## Update checklist scores with code verification
+#### Update checklist scores with code verification
 ```
 mkdir -p rlcf_data_openrlhf
 python generate_wildchat_openrlhf_dataset.py \
@@ -88,38 +105,40 @@ python generate_wildchat_openrlhf_dataset.py \
 This file (`train.jsonl`) can then be used for training or evaluation.
 
 ## Train Model
-This script has been tested on nodes with 4 or 8 H100s:
+This script has been tested on nodes with 4 or 8 H100s/A100-80GBs:
+```
 cd openrlhf_training_scripts
 ./train_rlcf.sh
+```
 
 ## Benchmark Evaluation
 
-### InFoBench
+#### InFoBench
 Set an
 ```
 ./launch_infobench_inference.sh  <trained_model_name> <openai or litellm key>
 ```
 
-### FollowBench
+#### FollowBench
 ```
 ./launch_followbench_inference.sh <trained_model_name> <openai or litellm key>
 ```
 
-### IFEval
+#### IFEval
 If you want to run evaluation on IFEval, you need to clone the google-research repo into the root of checklist_finetuning:
 ```
 git clone https://github.com/google-research/google-research.git
 ```
 Then, run ./launch_ifeval_evaluation.sh <trained_model_name>
 
-### ArenaHard
+#### ArenaHard
 If you want to run evaluation on IFEval, you need to clone the google-research repo into the root of checklist_finetuning:
 ```
 git clone https://github.com/google-research/google-research.git
 ```
 Then, run ./launch_ifeval_evaluation.sh <trained_model_name> <openai or litellm key>
 
-# Dependencies
+## Dependencies
 Install openrlhf from source:
 ```
 conda create -n openrlhf python=3.10
@@ -132,7 +151,7 @@ pip install -r requirements.txt
       title={Checklists Are Better Than Reward Models For Aligning Language Models},
       author={Vijay Viswanathan and Yanchao Sun and Shuang Ma and Xiang Kong and Meng Cao and Graham Neubig and Tongshuang Wu},
       year={2025},
-      eprint={2507.XXXXX},
+      eprint={2507.18624},
       archivePrefix={arXiv},
       primaryClass={cs.CL}
 }
