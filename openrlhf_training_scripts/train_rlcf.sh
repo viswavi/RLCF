@@ -15,7 +15,7 @@ openrlhf.cli.train_dpo \
    --micro_train_batch_size 4 \
    --pretrain Qwen/Qwen2.5-7B-Instruct \
    --bf16 \
-   --max_epochs 6 \
+   --max_epochs 2 \
    --max_len 2048 \
    --zero_stage 3 \
    --learning_rate 3e-6 \
